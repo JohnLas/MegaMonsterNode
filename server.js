@@ -2,30 +2,22 @@ var users   = require('./users');
 var rooms   = require('./rooms.js'); 
 var id      = require('./id.js');
 var pokemon = require('./pokemon.js');
+var user    = require('./user.js');
 var WebSocketServer = require('ws').Server, wss = new WebSocketServer({port: 1337});
 var date = new Date();
+var postRequest = require('./postRequest.js');
 
-//var io = require ('socket.io').listen(wss);
 
-wss.on('connection', function(socket){
 
-    // Create USer
-    user = {};
-    user.id = id.makeId();
-    socket.id = user.id;
-    user.socket = socket;
-    user.X = 0;
-    user.Y = 0;
-    users.addUser(user);
-    socket.send('{"action" : "connected", "userId": "'+user.id+'"}');
-    //    console.log(socket.upgradeReq.headers.sec-websocket-key);
-    console.log(users.countUsers() + " sont connectes");
-    
-    //Perte de la connection
-    socket.on('close', function() { 
-        users.deleteUser(socket.id);
-        console.log(users.countUsers() + " sont connectes");        
-    });
+process.on('not opened', function (err) {
+  console.error(err);
+  console.log("Node NOT Exiting...");
+});
+
+
+
+wss.on('connection', function(socket){    
+try {
 
     //Reception d'un message
     socket.on('message', function(string) {
@@ -36,12 +28,120 @@ wss.on('connection', function(socket){
              isMessageValid = false;
         }
         if (isMessageValid) {
-             console.log(message.action);
-             console.log(message);
+             //console.log(message.action);
+             
+
+/******************************************************************************
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+*******************************************************************************
+*****                                                                     *****
+*****                             ACTIONS                                 *****
+*****                                                                     *****
+*******************************************************************************
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+******************************************************************************/
+/******************************************************************************
+*****                                                                     *****
+*****                           LOGIN                                     *****
+*****                                                                     *****
+******************************************************************************/
+
+// Connexion utilisateur
+if (message.action == 'connectUser') {
+
+    if (!users.isUserConnected(message['idFacebook'])) {
+
+        var url = '/MegaMonster/users/connect/'+message['idFacebook']+'/.json';
+
+        var callback = function (response) {
+        parsedResponse = JSON.parse(response);
+        player = new user.create(parsedResponse.idFacebook, socket, parsedResponse.login, parsedResponse.X, parsedResponse.Y);                
+        users.addUser(player);
+        console.log(response);
+        socket.send(response);
+        };
+
+        postRequest.get(url,callback);
+
+    } else {
+        response = { };
+        response.action = "notConnected";
+        socket.send(JSON.stringify(response));
+    }
+}
+
+
+//Perte de la connection
+socket.on('close', function() { 
+    if(users.isUserConnected(socket.user.id)) {
+        socket.user.savePosition();
+        users.deleteUser(socket.id);
+    }
+});
+
+//Creation de compte
+if(message.action == 'createUser') {
+    var callback = function (response, statusCode) {
+        console.log(response);
+        if (statusCode == 200) {
+            socket.user.login = response.login;
+            response = { };
+            response.action = "profileCreated";
+            response.userId = socket.user.id;
+            response.login = socket.user.login;
+            
+            socket.send(JSON.stringify(response));
+        } else {
+            console.log(statusCode);
+        }
+    }
+
+    data = new Object();
+    data.idFacebook = socket.user.idFacebook;
+    data.login = message['login'];
+    url = '/MegaMonster/users/add.json';
+
+    postRequest.post(data,url,callback);
+}
+
 
 /******************************************************************************
 *****                                                                     *****
-*****                             ACTIONS                                 *****
+*****                           MAP                                       *****
+*****                                                                     *****
+******************************************************************************/
+
+ //Nouveau joueur sur la map
+ if(message.action == 'newPlayer') {
+     newUser = users.getUserByFacebookId(message.idFacebook);
+     console.log("New User: " +newUser.login+" X: "+newUser.X+" Y :"+newUser.Y);
+     if(newUser)
+        users.notifyNewUser(newUser); 
+ }
+ //Position des autres joueurs sur la map
+ if(message.action == 'sendPosition') {
+    
+    socket.user.X = message['X'];
+    socket.user.Y = message['Y'];
+
+    response = { };
+    response.action = "setPosition";
+    response.userId = socket.user.id;
+    response.X = message['X'];
+    response.Y = message['Y'];
+
+    for (var i = 0; i < users.array.length; i++) {
+        users.array[i].socket.send(JSON.stringify(response));
+        console.log(JSON.stringify(response));
+    }
+
+ }
+
+
+
+/******************************************************************************
+*****                                                                     *****
+*****                           COMBATS                                   *****
 *****                                                                     *****
 ******************************************************************************/
 
@@ -70,30 +170,14 @@ wss.on('connection', function(socket){
                   rooms.getRoom(message['roomId']).getPokemons(users.getUser(socket.id));
              }
 
-             //Attacuer
+             //Attaquer
              if(message.action == 'attack') {
                  rooms.getRoom(message['roomId']).addAttackToBuffer(users.getUser(socket.id), message['attackId']);
              }
 
              if (message.action == 'heal') {
-	          users.getUser(socket.id).pokemon = new pokemon.create(users.getUser(socket.id).pokemon.ID); 
+                 users.getUser(socket.id).pokemon = new pokemon.create(users.getUser(socket.id).pokemon.ID); 
              }
-
-
-             //Nouveau joueur sur la map
-             if(message.action == 'newPlayer') {
-                  users.notifyNewUser(user); 
-             }
-             //Position des autres joueurs sur la map
-             if(message.action == 'sendPosition') {
-                 for (var i = 0; i < users.array.length; i++){
-                         users.array[i].socket.send('{"action" : "setPosition",'
-                                                   +' "userId": "'+message['userId']+'",'
-                                                   +' "X" : "'+message['X']+'",'
-                                                   +' "Y" : "'+message['Y']+'" }');
-                 }
-             }
-
 
 
 
@@ -107,6 +191,9 @@ wss.on('connection', function(socket){
             
          }
     });
+} catch (e) {
+    console.log(e);
+}
 
 });
 

@@ -1,4 +1,4 @@
-var skills = {
+﻿var skills = {
     1  : {"name" : "Charge",        "power" : "40",  "accuracy" : "70", "animationId" : "1", "type" : "combat"},
     2  : {"name" : "Vague Psy",     "power" : "100", "accuracy" : "90", "animationId" : "1", "type" : "psy"   },
     3  : {"name" : "Choc Mental",   "power" : "130", "accuracy" : "85", "animationId" : "1", "type" : "psy"   },

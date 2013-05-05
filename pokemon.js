@@ -1,4 +1,4 @@
-var pokemonsTemplate = require('./pokemons');
+﻿var pokemonsTemplate = require('./pokemons');
 var skill            = require('./skill');
 var element    = require('./elements');
 

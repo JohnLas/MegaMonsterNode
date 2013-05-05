@@ -1,4 +1,4 @@
-function makeId()
+﻿function create()
 {
     var text = "";
     var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -9,4 +9,4 @@ function makeId()
     return text;
 }
 
-exports.makeId = makeId;
+exports.create = create;

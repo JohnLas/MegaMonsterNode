@@ -1,4 +1,4 @@
-var pokemons = {
+﻿var pokemons = {
  1 : {ID : 1, NAME : 'Alakazam',    PV : 58, ATK : 64,  DEF: 58,  ASP: 80,  DSP: 65,  VIT : 80,  attack : {1:1, 2:2, 3:3 ,4:4 },  TYPE : 'psy'     },
  2 : {ID : 2, NAME : 'Arcanin',     PV : 90, ATK : 110, DEF: 80,  ASP: 100, DSP: 80,  VIT : 90,  attack : {1:5, 2:6, 3:7 ,4:8 },  TYPE : 'psy'     },
  3 : {ID : 3, NAME : 'Soporifik',   PV : 60, ATK : 48,  DEF: 45,  ASP: 43,  DSP: 90,  VIT : 42,  attack : {1:9, 2:10,3:11,4:12},  TYPE : 'psy'     },

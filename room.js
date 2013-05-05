@@ -1,4 +1,4 @@
-//var attackBuffer = [];
+﻿//var attackBuffer = [];
 
 
 function create(id,user){
